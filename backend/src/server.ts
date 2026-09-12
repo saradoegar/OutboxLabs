@@ -15,7 +15,7 @@ const startServer = async () => {
     console.log('[API Server] Background Email Worker initialized and listening to email-queue');
   }
 
-  app.listen(config.port, () => {
+  app.listen(config.port, '0.0.0.0', () => {
     console.log(`[API Server] Running on port ${config.port}`);
     console.log(`[API Server] Health check available at http://localhost:${config.port}/health`);
   });
