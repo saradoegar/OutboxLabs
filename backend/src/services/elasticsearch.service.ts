@@ -16,9 +16,21 @@ export const elasticsearchService = {
   baseUrl: config.elasticsearch.url,
   indexName: 'emails',
 
+  getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (config.elasticsearch.username && config.elasticsearch.password) {
+      const auth = Buffer.from(`${config.elasticsearch.username}:${config.elasticsearch.password}`).toString('base64');
+      headers['Authorization'] = `Basic ${auth}`;
+    } else if (process.env.ELASTICSEARCH_API_KEY) {
+      headers['Authorization'] = `ApiKey ${process.env.ELASTICSEARCH_API_KEY}`;
+    }
+    return headers;
+  },
+
   async isHealthy(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/_cluster/health`, {
+        headers: this.getHeaders(),
         signal: AbortSignal.timeout(3000),
       });
       return res.ok;
@@ -31,6 +43,7 @@ export const elasticsearchService = {
     try {
       const checkRes = await fetch(`${this.baseUrl}/${this.indexName}`, {
         method: 'HEAD',
+        headers: this.getHeaders(),
         signal: AbortSignal.timeout(3000),
       });
 
@@ -38,7 +51,7 @@ export const elasticsearchService = {
         // Create index with mapping
         await fetch(`${this.baseUrl}/${this.indexName}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: this.getHeaders(),
           body: JSON.stringify({
             mappings: {
               properties: {
@@ -66,7 +79,7 @@ export const elasticsearchService = {
     try {
       const res = await fetch(`${this.baseUrl}/${this.indexName}/_doc/${encodeURIComponent(email.id)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getHeaders(),
         body: JSON.stringify(email),
         signal: AbortSignal.timeout(3000),
       });
@@ -98,7 +111,7 @@ export const elasticsearchService = {
 
     const res = await fetch(`${this.baseUrl}/${this.indexName}/_search`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: this.getHeaders(),
       body: JSON.stringify(query),
     });
 
